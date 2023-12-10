@@ -231,11 +231,14 @@ fn main() {
 
                 // get pipe type count like the following
                 match pipe_left {
+                    // if vertical, count
                     Pipe::Vertical => {
                         wall_counter += 1;
                     }
+                    // for north and south west, go to the left in a new loop and search for the opposing one.
                     Pipe::NorthWest => {
-                        for (corner_left_index, pipe) in line[0..left_index].iter().enumerate().rev()
+                        for (corner_left_index, pipe) in
+                            line[0..left_index].iter().enumerate().rev()
                         {
                             if !pipes.contains_key(&(line_index, corner_left_index)) {
                                 panic!("Bend found without further bend");
@@ -249,13 +252,13 @@ fn main() {
                                     wall_counter += 1;
                                     break;
                                 }
-                                Pipe::Start => unimplemented!(),
                                 _ => (),
                             }
                         }
                     }
                     Pipe::SouthWest => {
-                        for (corner_left_index, pipe) in line[0..left_index].iter().enumerate().rev()
+                        for (corner_left_index, pipe) in
+                            line[0..left_index].iter().enumerate().rev()
                         {
                             if !pipes.contains_key(&(line_index, corner_left_index)) {
                                 panic!("Bend found without further bend");
@@ -269,24 +272,13 @@ fn main() {
                                     wall_counter += 1;
                                     break;
                                 }
-                                Pipe::Start => unimplemented!(),
                                 _ => (),
                             }
                         }
                     }
-
-                    Pipe::Start => unimplemented!(),
+                    // ignore others - if north- or south east, ignore (west will be there)
                     _ => continue,
                 }
-                // if vertical, count
-                // if horizontal, ignore
-                // if north- or south east, ignore (west will be there)
-                // if other bend
-                // go to the left in a new loop
-                //if element not in pipes, panic
-                // if bend:
-                // if it goes into the same direction (up/down), break;
-                // it it goes into the other direction, count wall.
             }
 
             if wall_counter % 2 == 1 {
