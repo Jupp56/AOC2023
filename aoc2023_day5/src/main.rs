@@ -40,7 +40,7 @@ impl Converter {
                 conversion.start_start <= number
                     && conversion.start_start + conversion.length > number
             })
-            .map_or_else(|| number, |conversion|  conversion.convert(number))
+            .map_or_else(|| number, |conversion| conversion.convert(number))
     }
 
     pub fn sort_conversions(&mut self) {
@@ -127,7 +127,7 @@ fn main() {
     let mut end = Instant::now();
     println!("Time: {}", (end - start).as_secs_f32());*/
     part_2(&s);
-    part_2_2(&s);
+    //part_2_2(&s);
 }
 
 fn part_1(s: &str) {
@@ -253,8 +253,12 @@ fn part_2_2(s: &str) {
     println!("Result part 2_2: {min}");
 }
 
-fn convert_recursive(range_start: isize, range_end: isize, converters: &[Converter], used_convs: Vec<(isize, isize, Conversion)>) -> isize {
-    
+fn convert_recursive(
+    range_start: isize,
+    range_end: isize,
+    converters: &[Converter],
+    used_convs: Vec<(isize, isize, Conversion)>,
+) -> isize {
     let mut conversions_min_result = isize::MAX;
 
     for conversion in &converters[0].conversions {
@@ -281,9 +285,9 @@ fn convert_recursive(range_start: isize, range_end: isize, converters: &[Convert
 
             // convert the end of the range
             let converted_end = conversion.convert(conversion_end.min(range_end));
-            
+
             let mut used_convs = used_convs.clone();
-        
+
             used_convs.push((range_start, range_end, conversion.to_owned()));
 
             if converters.len() > 1 {
@@ -292,17 +296,15 @@ fn convert_recursive(range_start: isize, range_end: isize, converters: &[Convert
                     start_of_range_conversion_result,
                     converted_end,
                     &converters[1..],
-                    used_convs
+                    used_convs,
                 );
                 // and update our minimum found result if necessary
                 conversions_min_result = conversions_min_result.min(result);
             } else {
                 if start_of_range_conversion_result == 92661120 {
-                    for (start, end ,conv) in &used_convs {
-                        if *end < conv.start_start 
-                        || *start > conv.start_start + conv.length
-                     {
-                        println!("Somethings up");
+                    for (start, end, conv) in &used_convs {
+                        if *end < conv.start_start || *start > conv.start_start + conv.length {
+                            println!("Somethings up");
                         }
                     }
                     println!("{:#?}", used_convs);
