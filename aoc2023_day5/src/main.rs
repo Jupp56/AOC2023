@@ -122,11 +122,11 @@ impl Converter {
 fn main() {
     let s = std::fs::read_to_string("input").unwrap();
     //  part_1(&s);
-    /*let mut start = Instant::now();
+    let mut start = Instant::now();
     part_2(&s);
     let mut end = Instant::now();
-    println!("Time: {}", (end - start).as_secs_f32());*/
-    part_2(&s);
+    println!("Time: {}", (end - start).as_secs_f32());
+    //part_2(&s);
     //part_2_2(&s);
 }
 
@@ -197,7 +197,7 @@ fn part_2(s: &str) {
                 for converter in &converters {
                     result = converter.convert(result);
                     if result == 136096660 {
-                        println!("Last converter: {:?}, seed: {}", converter, seed)
+                        //println!("Last converter: {:?}, seed: {}", converter, seed)
                     }
                 }
                 result
