@@ -13,7 +13,7 @@ enum Type {
 }
 
 fn main() {
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day7/input").unwrap();
     part_1::part_1(&input);
     part_2::part_2(&input);
 }

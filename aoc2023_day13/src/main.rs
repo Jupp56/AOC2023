@@ -1,5 +1,5 @@
 fn main() {
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day13/input").unwrap();
 
     let puzzles = parse_puzzles(&input);
 

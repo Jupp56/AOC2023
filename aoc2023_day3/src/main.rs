@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 fn main() {
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day3/input").unwrap();
 
     let mut symbol_positions: Vec<(usize, usize)> = Vec::new();
 

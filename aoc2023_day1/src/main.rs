@@ -1,7 +1,7 @@
 use memchr::memmem;
 
 fn main() {
-    let s = std::fs::read_to_string("input").unwrap();
+    let s = std::fs::read_to_string("../input/day1/input").unwrap();
 
     let res = s
         .lines()

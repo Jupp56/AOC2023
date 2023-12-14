@@ -1,7 +1,7 @@
 const SIZE_FACTOR: usize = 2;
 
 fn main() {
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day11/input").unwrap();
 
     let universe: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
 

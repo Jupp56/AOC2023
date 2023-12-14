@@ -50,7 +50,7 @@
  */
 
 fn main() {
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day2/input").unwrap();
 
     let lines = input.lines();
 

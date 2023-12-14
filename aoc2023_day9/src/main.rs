@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 fn main() {
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day9/input").unwrap();
     part_1(&input);
     part_2(&input);
 }

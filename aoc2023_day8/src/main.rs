@@ -142,7 +142,7 @@ fn part_2_get_smallest_common_multiple(
 }
 
 fn parse_input() -> (Vec<Movement>, WayMap) {
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day8/input").unwrap();
     let mut lines = input.lines();
     let movement_instructions: Vec<Movement> =
         lines.next().unwrap().chars().map(Movement::from).collect();

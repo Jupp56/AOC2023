@@ -1,5 +1,5 @@
 fn main() {
-    let file = std::fs::read_to_string("input").unwrap();
+    let file = std::fs::read_to_string("../input/day4/input").unwrap();
     let lines: Vec<&str> = file.lines().collect();
 
     let mut copy_queue = Vec::with_capacity(lines.len());

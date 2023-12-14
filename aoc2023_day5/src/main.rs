@@ -120,14 +120,12 @@ impl Converter {
 }
 
 fn main() {
-    let s = std::fs::read_to_string("input").unwrap();
-    //  part_1(&s);
-    let mut start = Instant::now();
+    let s = std::fs::read_to_string("../input/day5/input").unwrap();
+      part_1(&s);
+
     part_2(&s);
-    let mut end = Instant::now();
-    println!("Time: {}", (end - start).as_secs_f32());
-    //part_2(&s);
-    //part_2_2(&s);
+   
+   
 }
 
 fn part_1(s: &str) {
@@ -210,112 +208,6 @@ fn part_2(s: &str) {
     println!("Result Part 2: {}", results.iter().min().unwrap());
 }
 
-fn part_2_2(s: &str) {
-    let mut lines = s.lines();
-
-    let seed_list = lines.next().unwrap();
-    let seed_list: Vec<isize> = seed_list
-        .split(':')
-        .nth(1)
-        .unwrap()
-        .trim()
-        .split(' ')
-        .map(|x| str::parse::<isize>(x).unwrap())
-        .collect();
-
-    let mut seed_pairs = Vec::new();
-
-    let mut first = -1;
-    for seed in &seed_list {
-        if first == -1 {
-            first = *seed;
-        } else {
-            seed_pairs.push((first, *seed));
-
-            first = -1;
-        }
-    }
-
-    let mut converters = parse_converters(lines);
-
-    for converter in &mut converters {
-        converter.generate_missing_conversions();
-    }
-
-    //println!("{:#?}", converters[0]);
-
-    let mut min = isize::MAX;
-    for (start, len) in seed_pairs {
-        let res = convert_recursive(start, start + len, &converters, vec![]);
-        min = min.min(res);
-    }
-
-    println!("Result part 2_2: {min}");
-}
-
-fn convert_recursive(
-    range_start: isize,
-    range_end: isize,
-    converters: &[Converter],
-    used_convs: Vec<(isize, isize, Conversion)>,
-) -> isize {
-    let mut conversions_min_result = isize::MAX;
-
-    for conversion in &converters[0].conversions {
-        let conversion_end = conversion.start_start + conversion.length;
-
-        // first: check out if we actually hit the conversion
-        // start of conversion is between start and end
-        if conversion.start_start >= range_start && conversion.start_start < range_end
-
-        // or end of conversion is between start and end
-        || conversion_end >= range_start && conversion_end <= range_end
-
-        // or both start and end of conversion are between start and start + len
-
-        || conversion.start_start >= range_start && conversion_end <= range_end
-        // or both or both start and end of conversion are encompassing
-        || conversion.start_start <= range_start && conversion_end >= range_end
-        {
-            // second: find out where exactly we hit it
-            // the actual start of converting with this conversion
-            let actual_start = isize::max(range_start, conversion.start_start);
-            // convert that
-            let start_of_range_conversion_result = conversion.convert(actual_start);
-
-            // convert the end of the range
-            let converted_end = conversion.convert(conversion_end.min(range_end));
-
-            let mut used_convs = used_convs.clone();
-
-            used_convs.push((range_start, range_end, conversion.to_owned()));
-
-            if converters.len() > 1 {
-                // now convert with all further converters
-                let result = convert_recursive(
-                    start_of_range_conversion_result,
-                    converted_end,
-                    &converters[1..],
-                    used_convs,
-                );
-                // and update our minimum found result if necessary
-                conversions_min_result = conversions_min_result.min(result);
-            } else {
-                if start_of_range_conversion_result == 92661120 {
-                    for (start, end, conv) in &used_convs {
-                        if *end < conv.start_start || *start > conv.start_start + conv.length {
-                            println!("Somethings up");
-                        }
-                    }
-                    println!("{:#?}", used_convs);
-                }
-                return start_of_range_conversion_result;
-            }
-        }
-    }
-
-    return conversions_min_result;
-}
 
 fn parse_converters(lines: std::str::Lines<'_>) -> Vec<Converter> {
     let mut converters = Vec::new();

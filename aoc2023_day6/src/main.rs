@@ -3,7 +3,7 @@ use std::time::Instant;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 fn main() {
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day6/input").unwrap();
     let mut lines = input.lines();
     let time_line = lines.next().unwrap();
     let distance_line = lines.next().unwrap();

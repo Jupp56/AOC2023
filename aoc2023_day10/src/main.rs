@@ -146,7 +146,7 @@ impl From<&str> for Maze {
 
 fn main() {
     //TODO: Find actual start pipe?
-    let input = std::fs::read_to_string("input").unwrap();
+    let input = std::fs::read_to_string("../input/day10/input").unwrap();
 
     let mut maze = Maze::from(input.as_ref());
 
