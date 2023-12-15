@@ -1,7 +1,7 @@
 use std::{collections::HashMap, usize};
 
 fn main() {
-    let input = std::fs::read_to_string("test-input").unwrap();
+    let input = std::fs::read_to_string("../input/day12/input").unwrap();
 
     let mut counter = 0;
 
@@ -100,7 +100,6 @@ fn main() {
     }
 
     println!("{counter}");
-    println!("{versions}");
 }
 
 fn check_variant(variant: &[char], contiguous_groups: &[usize]) -> bool {
