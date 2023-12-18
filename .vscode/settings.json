@@ -1,5 +1,5 @@
 {
     "rust-analyzer.linkedProjects": [
-        ".\\aoc2023_day15\\Cargo.toml"
+        ".\\aoc2023_day18\\Cargo.toml"
     ]
 }
