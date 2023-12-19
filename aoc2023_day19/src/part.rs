@@ -7,8 +7,8 @@ pub struct Part {
 }
 
 impl Part {
-    pub fn total_rating(&self) -> u128 {
-        self.x as u128 + self.m as u128 + self.a as u128 + self.s as u128
+    pub fn total_rating(&self) -> u64 {
+        self.x as u64 + self.m as u64 + self.a as u64 + self.s as u64
     }
 }
 

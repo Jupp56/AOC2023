@@ -1,6 +1,8 @@
-use std::collections::HashMap;
 mod part;
+use std::sync::atomic::AtomicU64;
+
 use part::Part;
+use rayon::iter::{ParallelBridge, ParallelIterator};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Category {
@@ -38,28 +40,11 @@ impl From<char> for RuleType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum RuleResult {
     Accept,
     Reject,
-    Workflow(String),
-}
-
-impl From<&str> for RuleResult {
-    fn from(value: &str) -> Self {
-        if value == "A" {
-            return Self::Accept;
-        } else if value == "R" {
-            return Self::Reject;
-        }
-        Self::Workflow(value.to_owned())
-    }
-}
-
-impl RuleResult {
-    fn is_workflow_with_name(&self, workflow: &str) -> bool {
-        matches!(self, RuleResult::Workflow(x) if x == workflow)
-    }
+    Workflow(usize),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -100,7 +85,7 @@ impl From<&str> for Rule {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
 struct RuleWithResult {
     rule: Rule,
     result: RuleResult,
@@ -109,19 +94,10 @@ struct RuleWithResult {
 impl RuleWithResult {
     fn apply(&self, part: &Part) -> Option<RuleResult> {
         if self.rule.applies(part) {
-            Some(self.result.clone())
+            Some(self.result)
         } else {
             None
         }
-    }
-}
-
-impl From<&str> for RuleWithResult {
-    fn from(value: &str) -> Self {
-        let mut s = value.split(':');
-        let rule = Rule::from(s.next().unwrap());
-        let result = RuleResult::from(s.next().unwrap());
-        Self { rule, result }
     }
 }
 
@@ -140,31 +116,7 @@ impl Workflow {
             }
         }
 
-        self.otherwise.clone()
-    }
-
-    /// Finds the rule that references the workflow given.
-    fn find_referencing_rule(&self, workflow_name: &str) -> &RuleWithResult {
-        self.rules
-            .iter()
-            .find(|x| x.result.is_workflow_with_name(workflow_name))
-            .unwrap()
-    }
-
-    /// All the rules before the rule given are subtracted in inverse from the restriction.
-    /// In other words, the restriction is modified to fail the first rules up to the rule specified.
-    fn exclude_rules_before_from_restriction(
-        &self,
-        other_rule: &Rule,
-        restrictions: &mut Restrictions,
-    ) {
-        for rule in &self.rules {
-            if &rule.rule == other_rule {
-                break;
-            }
-
-            restrictions.intersect_with_opposite_of_rule(&rule.rule);
-        }
+        self.otherwise
     }
 }
 
@@ -176,246 +128,86 @@ enum EndResult {
 
 #[derive(Debug, Clone)]
 struct Workflows {
-    workflows: HashMap<String, Workflow>,
+    workflows: Vec<Workflow>,
+    start_index: usize,
 }
 
 impl From<&[&str]> for Workflows {
     fn from(raw_workflows: &[&str]) -> Self {
-        let mut workflows = HashMap::new();
+        let mut workflows = Vec::new();
 
-        for instruction in raw_workflows {
+        let mut start_index = 0;
+
+        for (index, instruction) in raw_workflows.iter().enumerate() {
             let mut name_inst = instruction.split('{');
             let name = name_inst.next().unwrap().to_owned();
+            if name == "in" {
+                start_index = index;
+            }
             let instructions = name_inst.next().unwrap();
             let instructions = &instructions[0..instructions.len() - 1];
 
             let mut instructions: Vec<&str> = instructions.split(',').collect();
 
             let otherwise = instructions.pop().unwrap();
-            let otherwise = RuleResult::from(otherwise);
+            let otherwise = match otherwise {
+                "A" => RuleResult::Accept,
+                "R" => RuleResult::Reject,
+                _ => {
+                    let (ins, _) = raw_workflows
+                        .iter()
+                        .enumerate()
+                        .find(|(_, elem)| elem.starts_with(&format!("{otherwise}{{")))
+                        .unwrap();
 
-            let rules = instructions.into_iter().map(RuleWithResult::from).collect();
+                    RuleResult::Workflow(ins)
+                }
+            };
 
-            workflows.insert(name, Workflow { rules, otherwise });
+            let mut rules = Vec::new();
+
+            for instruction in &instructions {
+                let mut split = instruction.split(':');
+                let rule = Rule::from(split.next().unwrap());
+                let res = split.next().unwrap();
+                let result = match res {
+                    "A" => RuleResult::Accept,
+                    "R" => RuleResult::Reject,
+                    _ => {
+                        let (ins, _) = raw_workflows
+                            .iter()
+                            .enumerate()
+                            .find(|(_, elem)| elem.starts_with(&format!("{res}{{")))
+                            .unwrap();
+
+                        RuleResult::Workflow(ins)
+                    }
+                };
+                rules.push(RuleWithResult { rule, result })
+            }
+
+            workflows.push(Workflow { rules, otherwise });
         }
 
-        Self { workflows }
+        Self {
+            workflows,
+            start_index,
+        }
     }
 }
 
 impl Workflows {
     fn apply(&self, part: &Part) -> EndResult {
-        let mut current = self.workflows.get("in").unwrap();
+        let mut current = &self.workflows[self.start_index];
         loop {
             let res = current.apply(part);
             match res {
                 RuleResult::Accept => return EndResult::Accepted,
                 RuleResult::Reject => return EndResult::Rejected,
-                RuleResult::Workflow(name) => current = self.workflows.get(&name).unwrap(),
+                RuleResult::Workflow(rule_index) => current = &self.workflows[rule_index],
             }
         }
     }
-
-    /// Returns all workflows that contain a rule that references the workflow provided.
-    fn find_referencing_workflows(&self, workflow_name: &str) -> Vec<(&String, &Workflow)> {
-        let referencing_flows: Vec<(&String, &Workflow)> = self
-        .workflows
-        .iter()
-        .filter(|(_, x)| {
-            x.rules.iter().any(|rule| {
-                if let RuleResult::Workflow(wf_name) = &rule.result {
-                    return wf_name == workflow_name;
-                }
-                false
-            })
-            || matches!(&x.otherwise, RuleResult::Workflow(wf_name) if wf_name == workflow_name)
-        })
-        .collect();
-        referencing_flows
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct Restrictions {
-    pub x: Interval,
-    pub m: Interval,
-    pub a: Interval,
-    pub s: Interval,
-}
-
-impl Restrictions {
-    fn sum(&self) -> u128 {
-        // TODO: Distinct?
-        self.x.sum() * self.m.sum() * self.a.sum() * self.s.sum()
-    }
-    fn intersect_with_rule(&mut self, rule: &Rule) {
-        let field = match rule.category {
-            Category::X => &mut self.x,
-            Category::M => &mut self.m,
-            Category::A => &mut self.a,
-            Category::S => &mut self.s,
-        };
-
-        field.intersect(rule);
-    }
-
-    fn intersect_with_opposite_of_rule(&mut self, rule: &Rule) {
-        let field = match rule.category {
-            Category::X => &mut self.x,
-            Category::M => &mut self.m,
-            Category::A => &mut self.a,
-            Category::S => &mut self.s,
-        };
-
-        field.intersect_opposite(rule);
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Interval {
-    lower: u16,
-    upper: u16,
-}
-
-impl Default for Interval {
-    fn default() -> Self {
-        Self {
-            lower: 1,
-            upper: 4000,
-        }
-    }
-}
-
-impl Interval {
-    fn sum(&self) -> u128 {
-        if self.upper > self.lower {
-            self.upper as u128 - self.lower as u128 + 1
-        } else {
-            0
-        }
-    }
-
-    fn intersect(&mut self, rule: &Rule) {
-        match rule.rule_type {
-            RuleType::Greater => self.lower = self.lower.max(rule.value + 1),
-            RuleType::Smaller => self.upper = self.upper.min(rule.value - 1),
-        }
-    }
-
-    fn intersect_opposite(&mut self, rule: &Rule) {
-        match rule.rule_type {
-            RuleType::Greater => self.upper = self.upper.min(rule.value),
-            RuleType::Smaller => self.lower = self.lower.max(rule.value),
-        }
-    }
-}
-
-/// Recursively searches through the referencing workflows until it finds the "in" workflow. Makes the intervals smaller according to the modalities.
-/// Sums up all the branches that occur.
-/// A workflow needs to have run before the invocation of this method (old_workflow_name refers to this).
-fn sum_referencing_workflows(
-    all_workflows: &Workflows,
-    old_workflow_name: &str,
-    current_workflow_name: &str,
-    current_workflow: &Workflow,
-    mut restrictions: Restrictions,
-) -> u128 {
-    if current_workflow
-        .otherwise
-        .is_workflow_with_name(old_workflow_name)
-    {
-        for rule in &current_workflow.rules {
-            restrictions.intersect_with_opposite_of_rule(&rule.rule);
-        }
-    } else {
-        let referencing_rule = current_workflow.find_referencing_rule(old_workflow_name);
-
-        restrictions.intersect_with_rule(&referencing_rule.rule);
-
-        current_workflow
-            .exclude_rules_before_from_restriction(&referencing_rule.rule, &mut restrictions);
-    }
-
-    if current_workflow_name == "in" {
-        return restrictions.sum();
-    }
-
-    let referencing_workflows = all_workflows.find_referencing_workflows(current_workflow_name);
-
-    if referencing_workflows.is_empty() {
-        return 0;
-    }
-
-    let mut sum = 0;
-
-    for (new_name, new_workflow) in referencing_workflows {
-        sum += sum_referencing_workflows(
-            all_workflows,
-            current_workflow_name,
-            new_name,
-            new_workflow,
-            restrictions,
-        );
-    }
-
-    sum
-}
-
-fn part_1(parts: &[Part], workflows: &Workflows) {
-    let mut sum = 0;
-
-    for part in parts {
-        let res = workflows.apply(part);
-
-        if res == EndResult::Accepted {
-            sum += part.total_rating();
-        }
-    }
-
-    println!("Part 1: {sum}");
-}
-
-fn part_2(workflows: &Workflows) {
-    let mut sum: u128 = 0;
-
-    for (outer_name, wf) in &workflows.workflows {
-        let referencing_flows: Vec<(&String, &Workflow)> =
-            workflows.find_referencing_workflows(outer_name);
-
-        for rule in &wf.rules {
-            if rule.result == RuleResult::Accept {
-                let mut rest = Restrictions::default();
-                rest.intersect_with_rule(&rule.rule);
-
-                wf.exclude_rules_before_from_restriction(&rule.rule, &mut rest);
-
-                for (referencing_name, flow) in &referencing_flows {
-                    sum += sum_referencing_workflows(
-                        workflows,
-                        outer_name,
-                        referencing_name,
-                        flow,
-                        rest,
-                    );
-                }
-            }
-        }
-
-        if wf.otherwise == RuleResult::Accept {
-            let mut rest = Restrictions::default();
-
-            for rule in &wf.rules {
-                rest.intersect_with_opposite_of_rule(&rule.rule);
-            }
-
-            for (referencing_name, flow) in referencing_flows {
-                sum +=
-                    sum_referencing_workflows(workflows, outer_name, referencing_name, flow, rest);
-            }
-        }
-    }
-
-    println!("Part 2: {sum}");
 }
 
 fn get_parts_and_workflows(input: &str) -> (Vec<Part>, Workflows) {
@@ -444,7 +236,40 @@ fn main() {
 
     let (parts, workflows) = get_parts_and_workflows(&input);
 
-    part_1(&parts, &workflows);
+    let mut sum = 0;
 
-    part_2(&workflows);
+    for part in parts {
+        if part.x == 1581 && part.m == 287 {
+            println!("Weihnachten");
+        }
+        let res = workflows.apply(&part);
+
+        if res == EndResult::Accepted {
+            sum += part.total_rating();
+        }
+    }
+
+    println!("Part 1: {sum}");
+
+    let mut sum = AtomicU64::new(0);
+
+    for x in 1..=1 {
+        println!("x{x}/4000");
+        (1..=4000).par_bridge().for_each(|m| {
+            println!("m{m}/4000");
+            for a in 1..=4000 {
+                for s in 1..=4000 {
+                    let part = Part { x, m, a, s };
+
+                    let res = workflows.apply(&part);
+
+                    if res == EndResult::Accepted {
+                        sum.fetch_add(part.total_rating(), std::sync::atomic::Ordering::SeqCst);
+                    }
+                }
+            }
+        });
+    }
+
+    println!("Part 2: {}", sum.get_mut());
 }
