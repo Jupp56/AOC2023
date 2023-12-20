@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 #[derive(Copy, Clone, Debug)]
@@ -5,16 +7,19 @@ use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterato
 struct Conversion {
     start_start: isize,
     destination_start: isize,
-    length: isize,
+    end: isize,
 }
 
 impl From<&str> for Conversion {
     fn from(value: &str) -> Self {
         let mut numbers = value.split(' ').map(|x| str::parse::<isize>(x).unwrap());
+        let destination_start = numbers.next().unwrap();
+        let start_start = numbers.next().unwrap();
+        let length = numbers.next().unwrap();
         Self {
-            destination_start: numbers.next().unwrap(),
-            start_start: numbers.next().unwrap(),
-            length: numbers.next().unwrap(),
+            destination_start,
+            start_start,
+            end: start_start + length - 1,
         }
     }
 }
@@ -34,10 +39,7 @@ impl Converter {
     pub fn convert(&self, number: isize) -> isize {
         self.conversions
             .iter()
-            .find(|conversion| {
-                conversion.start_start <= number
-                    && conversion.start_start + conversion.length > number
-            })
+            .find(|conversion| conversion.start_start <= number && conversion.end >= number)
             .map_or_else(|| number, |conversion| conversion.convert(number))
     }
 }
@@ -46,7 +48,11 @@ fn main() {
     let s = std::fs::read_to_string("../input/day5/input").unwrap();
     part_1(&s);
 
+    let start = Instant::now();
     part_2(&s);
+    let end = Instant::now();
+
+    println!("Time: {}", (end - start).as_secs_f32())
 }
 
 fn part_1(s: &str) {
