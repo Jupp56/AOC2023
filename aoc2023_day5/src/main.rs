@@ -1,5 +1,3 @@
-use std::{collections::btree_map::Keys, time::Instant};
-
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 #[derive(Copy, Clone, Debug)]
@@ -42,90 +40,13 @@ impl Converter {
             })
             .map_or_else(|| number, |conversion| conversion.convert(number))
     }
-
-    pub fn sort_conversions(&mut self) {
-        self.conversions
-            .sort_by(|a, b| a.start_start.cmp(&b.start_start));
-    }
-
-    pub fn generate_missing_conversions(&mut self) {
-        // find smallest start
-        // sort by start, then take first
-        self.sort_conversions();
-        // generate from 0 to start -1 if 0 isnt listed
-
-        let first = self.conversions[0];
-
-        let mut end_elem = first.start_start + first.length - 1;
-        if first.start_start != 0 {
-            self.conversions.push(Conversion {
-                start_start: 0,
-                destination_start: 0,
-                length: first.start_start,
-            });
-
-            self.sort_conversions();
-        }
-
-        loop {
-            // go to end and look for n+1
-            match self
-                .conversions
-                .iter()
-                .find(|x| x.start_start == end_elem + 1)
-            {
-                Some(elem) => {
-                    // if found, go to end, repeat there
-                    end_elem = elem.start_start + elem.length - 1;
-                    continue;
-                }
-                None => (),
-            }
-
-            // if not found, find smallest one bigger than current
-            // are ordered, so just take first that is bigger
-            let smallest = self
-                .conversions
-                .iter()
-                .filter(|x| x.start_start > end_elem)
-                .next();
-
-            match smallest {
-                Some(elem) => {
-                    // we clopy it, so that we can modify the list the conversion is in
-                    let elem = elem.clone();
-                    // if found, generate range up to that -1
-                    self.conversions.push(Conversion {
-                        start_start: end_elem + 1,
-                        destination_start: end_elem + 1,
-                        length: elem.start_start - (end_elem + 1),
-                    });
-
-                    self.sort_conversions();
-
-                    end_elem = elem.start_start + elem.length;
-                }
-                None => {
-                    // if not found, generate range up to isize::max and break
-                    self.conversions.push(Conversion {
-                        start_start: end_elem + 1,
-                        destination_start: end_elem + 1,
-                        length: isize::MAX - (end_elem + 1),
-                    });
-                    break;
-                }
-            }
-        }
-    }
 }
 
 fn main() {
     let s = std::fs::read_to_string("../input/day5/input").unwrap();
-      part_1(&s);
+    part_1(&s);
 
     part_2(&s);
-   
-   
 }
 
 fn part_1(s: &str) {
@@ -194,9 +115,6 @@ fn part_2(s: &str) {
                 let mut result = seed;
                 for converter in &converters {
                     result = converter.convert(result);
-                    if result == 136096660 {
-                        //println!("Last converter: {:?}, seed: {}", converter, seed)
-                    }
                 }
                 result
             })
@@ -207,7 +125,6 @@ fn part_2(s: &str) {
 
     println!("Result Part 2: {}", results.iter().min().unwrap());
 }
-
 
 fn parse_converters(lines: std::str::Lines<'_>) -> Vec<Converter> {
     let mut converters = Vec::new();
