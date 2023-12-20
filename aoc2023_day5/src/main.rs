@@ -5,28 +5,28 @@ use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterato
 #[derive(Copy, Clone, Debug)]
 
 struct Conversion {
-    start_start: isize,
-    destination_start: isize,
-    end: isize,
+    source_start: isize,
+    source_end: isize,
+    offset: isize,
 }
 
 impl From<&str> for Conversion {
     fn from(value: &str) -> Self {
         let mut numbers = value.split(' ').map(|x| str::parse::<isize>(x).unwrap());
         let destination_start = numbers.next().unwrap();
-        let start_start = numbers.next().unwrap();
+        let source_start = numbers.next().unwrap();
         let length = numbers.next().unwrap();
         Self {
-            destination_start,
-            start_start,
-            end: start_start + length - 1,
+            source_start,
+            source_end: source_start + length - 1,
+            offset: destination_start - source_start,
         }
     }
 }
 
 impl Conversion {
     pub fn convert(&self, number: isize) -> isize {
-        number + (self.destination_start - self.start_start)
+        number + self.offset
     }
 }
 
@@ -39,7 +39,7 @@ impl Converter {
     pub fn convert(&self, number: isize) -> isize {
         self.conversions
             .iter()
-            .find(|conversion| conversion.start_start <= number && conversion.end >= number)
+            .find(|conversion| conversion.source_start <= number && conversion.source_end >= number)
             .map_or_else(|| number, |conversion| conversion.convert(number))
     }
 }
