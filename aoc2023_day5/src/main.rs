@@ -47,12 +47,7 @@ impl Converter {
 fn main() {
     let s = std::fs::read_to_string("../input/day5/input").unwrap();
     part_1(&s);
-
-    let start = Instant::now();
     part_2(&s);
-    let end = Instant::now();
-
-    println!("Time: {}", (end - start).as_secs_f32())
 }
 
 fn part_1(s: &str) {
